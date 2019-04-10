@@ -18,7 +18,7 @@ import (
 
 import "flag"
 
-var serialport = flag.String("serialport", "/dev/ttyUSB0", "please choose a serial port")
+var serialport = flag.String("serialport", "/dev/USB0", "please choose a serial port")
 type Message struct {
     Sender    string `json:"sender,omitempty"`
     Recipient string `json:"recipient,omitempty"`
@@ -44,6 +44,7 @@ func main() {
 			case v:=<-analogChan:
 					message := PrepareMessage(v)
 					openMessage, _ := json.Marshal(&message)
+					fmt.Println("mensaje enviado")
 					socket.SendBinary(openMessage)
 					break;
 				case <-tick.C:
@@ -78,7 +79,7 @@ func SocketConfig(socket *gowebsocket.Socket) {
 	}
   
 	socket.OnTextMessage = func(message string, socket gowebsocket.Socket) {
-		log.Println("Received message - " + message)
+		// log.Println("Received message - " + message)
 	}
 
 	socket.OnDisconnected = func(err error, socket gowebsocket.Socket) {
@@ -97,7 +98,7 @@ func PrepareMessage(v int) Message {
 }
 
 func ReadSerialFirmata() chan int {
-	firmataAdaptor := firmata.NewAdaptor(serialport)
+	firmataAdaptor := firmata.NewAdaptor(*serialport)
 	firmataAdaptor.Connect()
 	ticker := time.NewTicker(300 * time.Millisecond)
 	analogread := make(chan int)
@@ -109,14 +110,13 @@ func ReadSerialFirmata() chan int {
 		for {
 			select {
 			case <-ticker.C:
-				fmt.Println(serialport)
+				// fmt.Println(*serialport)
 				red, _ := firmataAdaptor.AnalogRead("0")
 				fmt.Println(red)
 				maxValue = value + rangeValue
 				minValue = value - rangeValue
 				if !(red<=maxValue && red >= minValue) {
 					analogread <- red
-					fmt.Println(red)
 				}	
 				value = red
 			}
