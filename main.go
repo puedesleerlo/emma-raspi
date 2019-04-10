@@ -109,6 +109,7 @@ func ReadSerialFirmata() chan int {
 		for {
 			select {
 			case <-ticker.C:
+				fmt.Println(serialport)
 				red, _ := firmataAdaptor.AnalogRead("0")
 				fmt.Println(red)
 				maxValue = value + rangeValue
