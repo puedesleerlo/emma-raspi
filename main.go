@@ -35,13 +35,21 @@ func main() {
 
 	socket.Connect()
 	go func() {
+		tick := time.NewTicker(10*time.Second)
 		for {
 			select {
 			case v:=<-analogChan:
 					message := PrepareMessage(v)
 					openMessage, _ := json.Marshal(&message)
-  				socket.SendBinary(openMessage)
+					socket.SendBinary(openMessage)
+					break;
+				case <-tick.C:
+					ping := Message{Type:"ping"}
+					pingMsg, _ := json.Marshal(&ping)
+					socket.SendBinary(pingMsg)
+					break;
 			}
+			
 		}
 	}()
 	
@@ -78,13 +86,8 @@ func SocketConfig(socket *gowebsocket.Socket) {
 
 func PrepareMessage(v int) Message {
 	content := map[string]interface{}{}
-	variables := make([]map[string]interface{}, 0)
-	x :=  map[string]interface{}{}
-	x["name"] = "x"
-	x["maxValue"] = 1023
-	x["minValue"] = 0
-	x["value"] = v
-	variables = append(variables, x)
+	variables := map[int]interface{}{}
+	variables[0] = v
 	content["variables"] = variables
 	message := Message{Type:"sensor", Content: content,}
 	return message
