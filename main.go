@@ -16,6 +16,9 @@ import (
 	"gobot.io/x/gobot/platforms/firmata"
 )
 
+import "flag"
+
+var serialport = flag.String("serialport", "/dev/ttyUSB0", "please choose a serial port")
 type Message struct {
     Sender    string `json:"sender,omitempty"`
     Recipient string `json:"recipient,omitempty"`
@@ -94,7 +97,7 @@ func PrepareMessage(v int) Message {
 }
 
 func ReadSerialFirmata() chan int {
-	firmataAdaptor := firmata.NewAdaptor("COM4")
+	firmataAdaptor := firmata.NewAdaptor(serialport)
 	firmataAdaptor.Connect()
 	ticker := time.NewTicker(300 * time.Millisecond)
 	analogread := make(chan int)
