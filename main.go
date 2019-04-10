@@ -18,7 +18,7 @@ import (
 
 import "flag"
 
-var serialport = flag.String("serialport", "/dev/USB0", "please choose a serial port")
+var serialport = flag.String("serialport", "/dev/ttyUSB0", "please choose a serial port")
 type Message struct {
     Sender    string `json:"sender,omitempty"`
     Recipient string `json:"recipient,omitempty"`
