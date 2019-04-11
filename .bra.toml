@@ -1,11 +1,12 @@
 [run]
 init_cmds = [                      # Commands run in start
-  ["go", "install"],
-  ["go", "build"],
-  ["./emma-raspi.exe"]
+  ["env", "GOOS=linux", "GOARCH=arm", "GOARM=5", "go", "build"],
+  ["scp", "emma-raspi", "pi@192.168.0.78:/home/pi/emma-raspi/"]
 ]
 watch_all = true                   # Watch all sub-directories
-watch_dirs = []                    # Directories to watch
+watch_dirs = [
+  "$WORKDIR"
+]                    # Directories to watch
 watch_exts = [".go"]               # Extensions to watch
 ignore = [".git", "node_modules"]  # Directories to exclude from watching
 ignore_files = []                  # Regexps for ignoring specific notifies
@@ -14,9 +15,11 @@ build_delay = 1500                 # Minimal interval to Trigger build event
 interrupt_timout = 15              # Time to wait until force kill
 graceful_kill = false              # Wait for exit and before directly kill
 cmds = [                           # Commands to run
-  ["go", "install"],
-  ["go", "build"],
-  ["./emma-raspi.exe"]
+  # ["go", "install"],
+  # ["go", "build"],
+  ["env", "GOOS=linux", "GOARCH=arm", "GOARM=5", "go", "build"],
+  ["scp", "emma-raspi", "pi@192.168.0.78:/home/pi/emma-raspi/"]
+  # ["./emma-brick.exe"]
 ]
 
 [sync]

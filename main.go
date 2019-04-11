@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 	"os/signal"
-	"encoding/json"
+	// "encoding/json"
 	// "github.com/jacobsa/go-serial/serial"
 
 	// "github.com/kraman/go-firmata"
@@ -31,26 +31,35 @@ func main() {
 	signal.Notify(interrupt, os.Interrupt)
 
 
-	socket := gowebsocket.New("ws://emmago.hopto.org/programs/ws")
-	analogChan := ReadSerialFirmata()			
-	
-	SocketConfig(&socket)
+	// socket := gowebsocket.New("ws://emmago.hopto.org/programs/ws")
+	firmataAdaptor := firmata.NewAdaptor(*serialport)
+	firmataAdaptor.Connect()
+	analogChan := ReadSerialFirmata(firmataAdaptor)			
+	encoderRotationChan := ReadRotaryEncoder(firmataAdaptor)
+	// SocketConfig(&socket)
 
-	socket.Connect()
+	// socket.Connect()
 	go func() {
 		tick := time.NewTicker(10*time.Second)
 		for {
 			select {
-			case v:=<-analogChan:
-					message := PrepareMessage(v)
-					openMessage, _ := json.Marshal(&message)
-					fmt.Println("mensaje enviado")
-					socket.SendBinary(openMessage)
+				case <-analogChan:
+					// message := PrepareMessage(v)
+					// openMessage, _ := json.Marshal(&message)
+					// fmt.Println("mensaje enviado")
+					// socket.SendBinary(openMessage)
+					break;
+				case rotation:= <-encoderRotationChan:
+					fmt.Println("el encoder es", rotation)
+					// message := PrepareMessage(rotation)
+					// openMessage, _ := json.Marshal(&message)
+					// fmt.Println("mensaje enviado")
+					// socket.SendBinary(openMessage)
 					break;
 				case <-tick.C:
-					ping := Message{Type:"ping"}
-					pingMsg, _ := json.Marshal(&ping)
-					socket.SendBinary(pingMsg)
+					// ping := Message{Type:"ping"}
+					// pingMsg, _ := json.Marshal(&ping)
+					// socket.SendBinary(pingMsg)
 					break;
 			}
 			
@@ -97,9 +106,8 @@ func PrepareMessage(v int) Message {
 	return message
 }
 
-func ReadSerialFirmata() chan int {
-	firmataAdaptor := firmata.NewAdaptor(*serialport)
-	firmataAdaptor.Connect()
+func ReadSerialFirmata(firmataAdaptor *firmata.Adaptor) chan int {
+	
 	ticker := time.NewTicker(300 * time.Millisecond)
 	analogread := make(chan int)
 	value :=0
@@ -124,4 +132,41 @@ func ReadSerialFirmata() chan int {
 	}()
 
 	return analogread
+}
+
+func ReadRotaryEncoder(firmata *firmata.Adaptor) chan int {
+	ticker := time.NewTicker(30 * time.Millisecond)
+	encoderRotationChan := make(chan int)
+	encoderPosCount := 0
+	pinA := "2"
+	pinB := "3"
+	pinALast,_ := firmata.DigitalRead(pinA); 
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				aVal,_ := firmata.DigitalRead(pinA);
+				if (aVal != pinALast){ // Means the knob is rotating
+					// if the knob is rotating, we need to determine direction
+					// We do that by reading pin B.
+				if readB,_ := firmata.DigitalRead(pinB); readB != aVal {  // Means pin A Changed first - We're Rotating Clockwise
+					encoderPosCount ++;
+				} else {// Otherwise B changed first and we're moving CCW
+					encoderPosCount--;
+				}
+					if encoderPosCount > 360 {
+						encoderPosCount = 360
+					} else if encoderPosCount < 0 {
+						encoderPosCount = 0
+					}
+					
+					encoderRotationChan<-encoderPosCount
+				} 
+				pinALast = aVal;
+				 
+			}
+		}
+	}()
+
+	return encoderRotationChan
 }
